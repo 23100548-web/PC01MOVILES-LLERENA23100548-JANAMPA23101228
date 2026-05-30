@@ -66,8 +66,7 @@ fun TravelCompanionApp() {
         }
 
         composable("presupuesto") {
-            PantallaTemporal(
-                titulo = "Planificador de Presupuesto de Viaje",
+            PresupuestoViajeScreen(
                 volver = { navController.navigate("menu") }
             )
         }
@@ -276,6 +275,128 @@ fun CalculadoraEquipajeScreen(volver: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Volver al menu principal")
+            }
+        }
+    }
+}
+
+@Composable
+fun PresupuestoViajeScreen(volver: () -> Unit) {
+    var diasTexto by remember { mutableStateOf("") }
+    var presupuestoTexto by remember { mutableStateOf("") }
+    var tipoAlojamiento by remember { mutableStateOf("") }
+    var resultado by remember { mutableStateOf("") }
+    var mensajeError by remember { mutableStateOf("") }
+
+    val alojamientos = listOf("Economico", "Estandar", "Premium")
+
+    Scaffold { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Planificador de Presupuesto",
+                style = MaterialTheme.typography.headlineSmall
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = diasTexto,
+                onValueChange = { diasTexto = it },
+                label = { Text("Cantidad de días") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = presupuestoTexto,
+                onValueChange = { presupuestoTexto = it },
+                label = { Text("Presupuesto diario") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("Tipo de alojamiento")
+
+            alojamientos.forEach { tipo ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = tipoAlojamiento == tipo,
+                        onClick = { tipoAlojamiento = tipo }
+                    )
+                    Text(tipo)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    val dias = diasTexto.toIntOrNull()
+                    val presupuesto = presupuestoTexto.toDoubleOrNull()
+
+                    if (diasTexto.isBlank() || presupuestoTexto.isBlank() || tipoAlojamiento.isBlank()) {
+                        mensajeError = "Todos los campos son obligatorios"
+                        resultado = ""
+                    } else if (dias == null) {
+                        mensajeError = "La cantidad de días debe ser un número entero"
+                        resultado = ""
+                    } else if (presupuesto == null) {
+                        mensajeError = "El presupuesto debe ser un valor numérico"
+                        resultado = ""
+                    } else if (dias <= 0) {
+                        mensajeError = "La cantidad de días debe ser mayor a cero"
+                        resultado = ""
+                    } else if (presupuesto <= 0) {
+                        mensajeError = "El presupuesto debe ser mayor a cero"
+                        resultado = ""
+                    } else {
+                        val factor = when (tipoAlojamiento) {
+                            "Economico" -> 0.8
+                            "Estandar" -> 1.0
+                            else -> 1.5
+                        }
+
+                        val total = dias * presupuesto * factor
+
+                        resultado = "Presupuesto total: S/ %.2f\nViaje de $dias dias con alojamiento $tipoAlojamiento.".format(total)
+                        mensajeError = ""
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Calcular presupuesto")
+            }
+
+            if (mensajeError.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = mensajeError,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            if (resultado.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(resultado)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = volver,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Volver al menú principal")
             }
         }
     }
