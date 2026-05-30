@@ -1,3 +1,5 @@
+//Janampa Diaz
+//LLERENA CABRERA
 package com.example.pc_1_moviles
 
 import android.os.Bundle
@@ -40,7 +42,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
-import coil.compose.AsyncImage // Importante: Requiere la librería Coil ya agregada
+import coil.compose.AsyncImage
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,8 +100,7 @@ fun TravelCompanionApp() {
         }
 
         composable("ubicacion") {
-            PantallaTemporal(
-                titulo = "Permiso de Ubicación para Asistencia de Viaje",
+            PermisoUbicacionScreen(
                 volver = { navController.navigate("menu") }
             )
         }
@@ -393,6 +402,110 @@ fun CatalogoDestinosScreen(volver: () -> Unit) {
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+
+            // Botón obligatorio para regresar al menú
+            Button(
+                onClick = volver,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Volver al menú principal")
+            }
+        }
+    }
+}
+@Composable
+fun PermisoUbicacionScreen(volver: () -> Unit) {
+    val context = LocalContext.current
+
+    // Estado inicial requerido por la rúbrica: "PENDIENTE"
+    var estadoPermiso by remember { mutableStateOf("PENDIENTE") }
+
+    // Función auxiliar para comprobar si el permiso ya fue concedido previamente
+    fun comprobarEstadoActual(): String {
+        val fineLoc = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarseLoc = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        return if (fineLoc == PackageManager.PERMISSION_GRANTED || coarseLoc == PackageManager.PERMISSION_GRANTED) {
+            "CONCEDIDO"
+        } else {
+            "PENDIENTE"
+        }
+    }
+
+    // Inicializamos el estado al cargar la pantalla por si ya se aceptó antes
+    remember {
+        val actual = comprobarEstadoActual()
+        if (actual == "CONCEDIDO") estadoPermiso = "CONCEDIDO"
+        actual
+    }
+
+    // REQUISITO: Implementar permisos mediante Activity Result API y rememberLauncherForActivityResult
+    val launcherPermisos = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        val concedido = permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        // Cambia dinámicamente el estado según la respuesta del usuario
+        estadoPermiso = if (concedido) "CONCEDIDO" else "DENEGADO"
+    }
+
+    Scaffold { paddingValues ->
+        // REQUISITO: Utilizar Column
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // REQUISITO: Utilizar Text para el título
+            Text(
+                text = "Permiso de Ubicación para Asistencia de Viaje",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+
+            // REQUISITO: Mostrar exactamente los 3 estados solicitados
+            val textoEstado = when (estadoPermiso) {
+                "CONCEDIDO" -> "Permiso concedido"
+                "DENEGADO" -> "Permiso denegado"
+                else -> "Permiso pendiente de solicitud"
+            }
+
+            // Cambiamos el color según el estado para que se vea genial
+            val colorEstado = when (estadoPermiso) {
+                "CONCEDIDO" -> MaterialTheme.colorScheme.primary
+                "DENEGADO" -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+
+            Text(
+                text = textoEstado,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = colorEstado
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // REQUISITO: Utilizar Button para solicitar el permiso
+            Button(
+                onClick = {
+                    // Lanza la solicitud de ambos permisos en lote
+                    launcherPermisos.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Solicitar Permisos")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Botón obligatorio para regresar al menú
             Button(
