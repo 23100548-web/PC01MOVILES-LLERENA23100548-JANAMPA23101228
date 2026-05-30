@@ -30,6 +30,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import coil.compose.AsyncImage // Importante: Requiere la librería Coil ya agregada
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,8 +84,7 @@ fun TravelCompanionApp() {
         }
 
         composable("destinos") {
-            PantallaTemporal(
-                titulo = "Catálogo de Destinos Turísticos",
+            CatalogoDestinosScreen(
                 volver = { navController.navigate("menu") }
             )
         }
@@ -276,6 +286,120 @@ fun CalculadoraEquipajeScreen(volver: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Volver al menu principal")
+            }
+        }
+    }
+}
+
+data class Destination(
+    val pais: String,
+    val ciudad: String,
+    val costoPromedio: Double,
+    val imageUrl: String
+)
+// 1. REQUISITO: Crear el Data Class llamado Destination (5 puntos)
+
+@Composable
+fun CatalogoDestinosScreen(volver: () -> Unit) {
+    // 2. REQUISITO: Lista simulada con al menos 5 destinos
+    val listaDestinos = remember {
+        listOf(
+            // Nueva URL para Perú (Machu Picchu / Cusco)
+            Destination("Perú", "Cusco", 450.00, "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=500"),
+
+            Destination("Francia", "París", 1200.50, "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500"),
+            Destination("Japón", "Tokio", 1500.00, "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=500"),
+            Destination("Italia", "Roma", 980.00, "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=500"),
+
+            // Nueva URL para México (Playa / Cancún)
+            Destination("México", "Cancún", 650.20, "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500")
+        )
+    }
+
+    // Cálculos para el final del listado
+    val totalDestinos = listaDestinos.size
+    val sumaCostos = listaDestinos.sumOf { it.costoPromedio }
+
+    Scaffold { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Catálogo de Destinos Turísticos",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // 3. REQUISITO: Utilizar LazyColumn para el listado eficiente
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(listaDestinos) { destino ->
+                    // 4. REQUISITO: Cada destino en un Card utilizando Row, Column y AsyncImage
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Carga de imagen mediante Coil AsyncImage
+                            AsyncImage(
+                                model = destino.imageUrl,
+                                contentDescription = "Imagen de ${destino.ciudad}",
+                                modifier = Modifier
+                                    .size(90.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            // Organización de los textos requeridos
+                            Column {
+                                Text(text = "País: ${destino.pais}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text(text = "Ciudad: ${destino.ciudad}", style = MaterialTheme.typography.bodyMedium)
+                                Text(text = "Costo promedio: $${String.format("%.2f", destino.costoPromedio)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+
+                // 5. REQUISITO: Al final del listado mostrar cantidad total y suma acumulada
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Resumen del Catálogo",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Text(text = "Cantidad total de destinos: $totalDestinos", style = MaterialTheme.typography.bodyLarge)
+                            Text(text = "Suma acumulada de costos: $${String.format("%.2f", sumaCostos)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+            // Botón obligatorio para regresar al menú
+            Button(
+                onClick = volver,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Volver al menú principal")
             }
         }
     }
