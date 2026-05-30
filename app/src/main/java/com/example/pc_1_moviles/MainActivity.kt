@@ -49,6 +49,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 
 
 class MainActivity : ComponentActivity() {
@@ -87,8 +91,7 @@ fun TravelCompanionApp() {
         }
 
         composable("presupuesto") {
-            PantallaTemporal(
-                titulo = "Planificador de Presupuesto de Viaje",
+            PlanificadorPresupuestoScreen(
                 volver = { navController.navigate("menu") }
             )
         }
@@ -308,6 +311,155 @@ data class Destination(
 )
 // 1. REQUISITO: Crear el Data Class llamado Destination (5 puntos)
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlanificadorPresupuestoScreen(volver: () -> Unit) {
+    var diasTexto by remember { mutableStateOf("") }
+    var presupuestoTexto by remember { mutableStateOf("") }
+    var tipoAlojamiento by remember { mutableStateOf("Estándar (1.0)") }
+    var resultado by remember { mutableStateOf("") }
+    var mensajeError by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
+    // Opciones del Dropdown con sus respectivos factores de multiplicación
+    val opcionesAlojamiento = listOf("Económico (0.8)", "Estándar (1.0)", "Premium (1.5)")
+
+    Scaffold { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Planificador de Presupuesto",
+                style = MaterialTheme.typography.headlineSmall
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Entrada de cantidad de días
+            OutlinedTextField(
+                value = diasTexto,
+                onValueChange = { diasTexto = it },
+                label = { Text("Cantidad de días") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Entrada de presupuesto diario
+            OutlinedTextField(
+                value = presupuestoTexto,
+                onValueChange = { presupuestoTexto = it },
+                label = { Text("Presupuesto diario ($)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(text = "Tipo de alojamiento", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Menú Desplegable Oficial Obligatorio (Dropdown Menu)
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = tipoAlojamiento,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    opcionesAlojamiento.forEach { opcion ->
+                        DropdownMenuItem(
+                            text = { Text(opcion) },
+                            onClick = {
+                                tipoAlojamiento = opcion
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    val dias = diasTexto.toIntOrNull()
+                    val diario = presupuestoTexto.toDoubleOrNull()
+
+                    // Validaciones de la rúbrica
+                    if (diasTexto.isBlank() || presupuestoTexto.isBlank()) {
+                        mensajeError = "Todos los campos son obligatorios"
+                        resultado = ""
+                    } else if (dias == null || diario == null) {
+                        mensajeError = "Los días y el presupuesto deben ser numéricos"
+                        resultado = ""
+                    } else if (dias <= 0) {
+                        mensajeError = "La cantidad de días debe ser mayor a cero"
+                        resultado = ""
+                    } else if (diario <= 0) {
+                        mensajeError = "El presupuesto diario debe ser mayor a cero"
+                        resultado = ""
+                    } else {
+                        // Obtención del factor según el alojamiento seleccionado
+                        val factor = when {
+                            tipoAlojamiento.contains("Económico") -> 0.8
+                            tipoAlojamiento.contains("Premium") -> 1.5
+                            else -> 1.0
+                        }
+
+                        // Fórmula de cálculo estipulada
+                        val total = dias * diario * factor
+
+                        resultado = "Presupuesto total estimado: $${String.format("%.2f", total)}\nEscenario: Viaje planificado para un entorno $tipoAlojamiento durante $dias días."
+                        mensajeError = ""
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Calcular Presupuesto")
+            }
+
+            if (mensajeError.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = mensajeError, color = MaterialTheme.colorScheme.error)
+            }
+
+            if (resultado.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Text(
+                        text = resultado,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = volver,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Volver al menú principal")
+            }
+        }
+    }
+}
 @Composable
 fun CatalogoDestinosScreen(volver: () -> Unit) {
     // 2. REQUISITO: Lista simulada con al menos 5 destinos
